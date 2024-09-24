@@ -13,4 +13,6 @@ public interface UserRepository extends JpaRepository<User, Long> {
     @Query(value = "SELECT * FROM User WHERE first_name LIKE %:firstName%", nativeQuery = true)
     List<User> findByFirstNameContaining(@Param("firstName") String firstName);
     //test change
+
+    //test add-some-nodes
 }
