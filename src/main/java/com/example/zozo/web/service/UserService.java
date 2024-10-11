@@ -2,6 +2,7 @@ package com.example.zozo.web.service;
 
 import com.example.zozo.web.model.User;
 import com.example.zozo.web.repository.UserRepository;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
 
@@ -11,9 +12,10 @@ import java.util.Optional;
 @Service
 public class UserService {
 
+    @Autowired
     private final UserRepository userRepository;
 
-    public UserService(UserRepository userRepository){
+    public UserService(UserRepository userRepository) {
         this.userRepository = userRepository;
     }
 
@@ -23,5 +25,10 @@ public class UserService {
     }*/
     public List<User> getUserByFirstName(String firstName) {
         return userRepository.findByFirstNameContaining(firstName);
+    }
+
+    public User loadUserByEmail(String email) throws Exception {
+        return userRepository.findByEmail(email)
+                .orElseThrow(() -> new Exception("User not found"));
     }
 }
