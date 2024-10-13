@@ -4,17 +4,15 @@ import com.example.zozo.web.client.StockClient;
 import com.example.zozo.web.model.StockPriceResponse;
 import com.example.zozo.web.model.StockHolding;
 import com.example.zozo.web.model.User;
-import com.example.zozo.web.model.UserStockHolding;
 import com.example.zozo.web.repository.StockHoldingRepository;
 import com.example.zozo.web.repository.UserRepository;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
-import java.security.Timestamp;
+import java.math.BigDecimal;
 import java.util.List;
 import java.util.Optional;
-import java.time.LocalDateTime;
 
 
 @Service
@@ -48,18 +46,18 @@ public class StockService {
 
         StockHolding stockHolding = stockHoldingRepository.findByStockSymbol(user.getId(), stockSymbol)
                 .map(sh -> {
-                    if(timestamp.compareTo(sh.getTimestamp()) > 0) {
-                       int updatedRow = stockHoldingRepository.updateStockHold(user.getId(), quantity, stockSymbol, sh.getTimestamp(), timestamp);
+                    if(timestamp.compareTo(sh.getUpdateTime()) > 0) {
+                       int updatedRow = stockHoldingRepository.updateStockHold(user.getId(), quantity, stockSymbol, sh.getUpdateTime(), timestamp);
                     }
                     sh.setQuantity(quantity);
                     return sh;
                 })
                 .orElseGet(() -> {
                     StockHolding newStockHolding = new StockHolding();
-                    newStockHolding.setId(Id);
+                    newStockHolding.setUserId(user.getId());
                     newStockHolding.setStockSymbol(stockSymbol);
                     newStockHolding.setQuantity(quantity);
-                    newStockHolding.setTimestamp(timestamp);
+                    newStockHolding.setUpdateTime(timestamp);
                     return stockHoldingRepository.save(newStockHolding);
                 });
 
@@ -83,11 +81,11 @@ public class StockService {
         }
         for (StockHolding holding : holdings) {
             StockPriceResponse priceResponse = stockClient.getStockPrice(
-                    "TIME_SERIES_INTRADAY",
+                    "GLOBAL_QUOTE",
                     holding.getStockSymbol(),
-                    "60", API_KEY).getBody();
-            double currentPrice = priceResponse.getCurrentPrice();
-            totalValue += holding.getQuantity() * currentPrice;
+                    API_KEY).getBody();
+            Double currentPrice = Double.valueOf(priceResponse.getGlobalQuote().getPrice());
+            totalValue += currentPrice * holding.getQuantity();
         }
 
         return totalValue;
@@ -97,10 +95,12 @@ public class StockService {
         try {
             // Call the stock API via FeignClient
             StockPriceResponse response = stockClient.getStockPrice(
-                    "TIME_SERIES_INTRADAY", symbol, "1min", API_KEY).getBody();
+                    "GLOBAL_QUOTE",
+                    symbol,
+                    API_KEY).getBody();
 
             // Parse the JSON to get the current price (pseudo-code, depending on your API)
-            double currentPrice = parsePriceFromResponse(String.valueOf(response.getCurrentPrice()));
+            double currentPrice = parsePriceFromResponse(String.valueOf(response.getGlobalQuote().getPrice()));
             return currentPrice;
         } catch (Exception e) {
             throw new RuntimeException("Error fetching stock price for " + symbol, e);

@@ -1,17 +1,10 @@
 package com.example.zozo.web.controller;
 
-import com.example.zozo.web.model.StockPriceResponse;
 import com.example.zozo.web.model.StockHolding;
-import com.example.zozo.web.model.User;
-import com.example.zozo.web.model.UserStockHolding;
 import com.example.zozo.web.service.StockService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
-import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.web.bind.annotation.*;
-
-import java.util.ArrayList;
-import java.util.List;
 
 @RestController
 @RequestMapping("/stocks")
@@ -34,14 +27,14 @@ public class StockController {
     public ResponseEntity<?> addStock(@RequestParam Long Id,
                                       @RequestParam String stockSymbol,
                                       @RequestParam int quantity,
-                                      @RequestParam String updateTime) {
+                                      @RequestParam String updateTime) {//2024-05-25 17:00:10
         StockHolding stockHolding = stockService.addStockHolding(Id, stockSymbol, quantity, updateTime);
         return ResponseEntity.ok(stockHolding);
     }
 
-    @PostMapping("/asset-value")
-    public ResponseEntity<?> getAssetValue(@RequestParam Long Id) {
-        double totalValue = stockService.calculateAssetValue(Id);
+    @GetMapping("/asset-value")
+    public ResponseEntity<?> getAssetValue(@RequestParam Long id) {
+        double totalValue = stockService.calculateAssetValue(id);
         return ResponseEntity.ok("Total asset value: $" + totalValue);
     }
 

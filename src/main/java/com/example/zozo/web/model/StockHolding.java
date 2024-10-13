@@ -13,18 +13,22 @@ public class StockHolding {
 
     @Column
     private String stockSymbol;
+
+    @Column
     private int quantity;
 
-    @Column(name = "lastUpdated", columnDefinition = "TIMESTAMP DEFAULT CURRENT_TIMESTAMP")
-    private String timestamp;
+    @Column
+    private String updateTime;
+
+    private Long userId;
 
     public StockHolding() {}
 
-    StockHolding(Long id, String symbol, int quantity, String timestamp) {
-        this.id = id;
+    StockHolding(String symbol, int quantity, String updateTime, Long userId) {
+        this.userId = userId;
         this.stockSymbol = symbol;
         this.quantity = quantity;
-        this.timestamp = timestamp;
+        this.updateTime = updateTime;
     }
 
     public String getStockSymbol() {
@@ -44,6 +48,12 @@ public class StockHolding {
     public Long getId() { return id; }
     public void setId(Long id) { this.id = id; }
 
-    public String getTimestamp() { return timestamp; }
-    public void setTimestamp(String timestamp) { this.timestamp = timestamp; }
+    public String getUpdateTime() { return updateTime; }
+    public void setUpdateTime(String updateTime) { this.updateTime = updateTime; }
+
+    public Long getUserId() { return userId; }
+    public void setUserId(Long userId) {
+        this.userId = userId;
+    }
+
 }
