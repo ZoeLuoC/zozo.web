@@ -16,6 +16,8 @@ public class StockController {
     @GetMapping("/price/{symbol}")
     public ResponseEntity<String> getStockPrice(@PathVariable String symbol) {
         try{
+            // Add a redis cache to cache the price for this symbol 60s
+            // Next time when this API is being called, check redis cache first
             double price = stockService.getStockPrice(symbol);
             return ResponseEntity.ok("The stock price of" + symbol + " is " + price);
         } catch (Exception e) {
@@ -33,7 +35,7 @@ public class StockController {
     }
 
     @GetMapping("/asset-value")
-    public ResponseEntity<?> getAssetValue(@RequestParam Long id) {
+    public ResponseEntity<?> getAssetValue(@RequestParam Long id) throws Exception {
         double totalValue = stockService.calculateAssetValue(id);
         return ResponseEntity.ok("Total asset value: $" + totalValue);
     }

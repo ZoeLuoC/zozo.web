@@ -112,6 +112,12 @@
 			<version>13.4</version>
 		</dependency>
 
+		<dependency>
+			<groupId>io.lettuce</groupId>
+			<artifactId>lettuce-core</artifactId>
+			<version>6.5.0.RC2</version>
+		</dependency>
+
 	</dependencies>
 
 	<build>
