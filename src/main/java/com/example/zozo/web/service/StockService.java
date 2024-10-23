@@ -2,11 +2,16 @@ package com.example.zozo.web.service;
 
 import com.example.zozo.web.model.StockHolding;
 import com.example.zozo.web.model.User;
+import com.example.zozo.web.model.exception.BizException;
 import com.example.zozo.web.repository.StockHoldingRepository;
 import com.example.zozo.web.repository.UserRepository;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Optional;
+import java.util.Random;
 
 
 @Service
@@ -24,31 +29,53 @@ public class StockService {
         this.stockPriceService = stockPriceService;
     }
 
-    public StockHolding addStockHolding(Long Id, String stockSymbol, int quantity, String timestamp) {
+    public StockHolding addStockHolding(Long Id, String stockSymbol, int quantity, String timestamp) throws BizException {
         Optional<User> userOpt = userRepository.findById(Id);
         if(userOpt.isEmpty()) {
-            throw new RuntimeException("User not found with Id: " + Id);
+            throw new BizException("User not found with Id: " + Id);
         }
 
         User user = userOpt.get();
-        StockHolding stockHolding = stockHoldingRepository.findByStockSymbol(user.getId(), stockSymbol)
-                .map(sh -> {
-                    if(timestamp.compareTo(sh.getUpdateTime()) > 0) {
-                       int updatedRow = stockHoldingRepository.updateStockHold(user.getId(), quantity, stockSymbol, sh.getUpdateTime(), timestamp);
-                    }
-                    sh.setQuantity(quantity);
-                    return sh;
-                })
-                .orElseGet(() -> {
-                    StockHolding newStockHolding = new StockHolding();
-                    newStockHolding.setUserId(user.getId());
-                    newStockHolding.setStockSymbol(stockSymbol);
-                    newStockHolding.setQuantity(quantity);
-                    newStockHolding.setUpdateTime(timestamp);
-                    return stockHoldingRepository.save(newStockHolding);
-                });
+        Optional<StockHolding> stockHolding = stockHoldingRepository.findByStockSymbol(user.getId(), stockSymbol);
+        if (stockHolding.isPresent()) {
+            int updatedRow = 0;
+            if(timestamp.compareTo(stockHolding.get().getUpdateTime()) > 0) {
+                updatedRow = stockHoldingRepository.updateStockHold(user.getId(), quantity, stockSymbol, stockHolding.get().getUpdateTime(), timestamp);
+            }
 
-        return stockHolding;
+            if (updatedRow == 1) {
+                stockHolding.get().setQuantity(quantity);
+                stockHolding.get().setUpdateTime(timestamp);
+                return stockHolding.get();
+            }
+            return null;
+        } else {
+            StockHolding newStockHolding = new StockHolding();
+            newStockHolding.setUserId(user.getId());
+            newStockHolding.setStockSymbol(stockSymbol);
+            newStockHolding.setQuantity(quantity);
+            newStockHolding.setUpdateTime(timestamp);
+            return stockHoldingRepository.save(newStockHolding);
+        }
+    }
+
+    @Transactional(rollbackFor = { BizException.class, RuntimeException.class })
+    public List<StockHolding> addBatchStockHolding(List<StockHolding> stockHoldings) throws BizException {
+        List<StockHolding> batchStockHolding = new ArrayList<>();
+        for (StockHolding stockHolding : stockHoldings) {
+            Long id = stockHolding.getUserId();
+            String stockSymbol = stockHolding.getStockSymbol();
+            int quantity = stockHolding.getQuantity();
+            String timestamp = stockHolding.getUpdateTime();
+
+            StockHolding sh = addStockHolding(id, stockSymbol, quantity, timestamp);
+            if (sh == null) {
+                throw new BizException("Add stock holding failed");
+            }
+
+            batchStockHolding.add(sh);
+        }
+        return batchStockHolding;
     }
 
     public double calculateAssetValue(Long Id) throws Exception {

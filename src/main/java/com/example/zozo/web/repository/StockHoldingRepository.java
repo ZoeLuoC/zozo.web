@@ -1,7 +1,6 @@
 package com.example.zozo.web.repository;
 
 import com.example.zozo.web.model.StockHolding;
-import com.example.zozo.web.model.User;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;
