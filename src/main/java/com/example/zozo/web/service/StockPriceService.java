@@ -1,5 +1,6 @@
 package com.example.zozo.web.service;
 
+import com.alibaba.csp.sentinel.annotation.SentinelResource;
 import com.example.zozo.web.client.StockClient;
 import com.example.zozo.web.model.StockHolding;
 import com.example.zozo.web.model.StockPriceResponse;
@@ -34,6 +35,7 @@ public class StockPriceService {
         this.stockHoldingRepository = stockHoldingRepository;
     }
 
+    @SentinelResource(value = "getStockPrice", fallback = "stockPriceFallback", blockHandler = "blockHandler")
     public double getStockPrice(String stockSymbol) throws Exception {
         String redisKey = "stock:price:" + stockSymbol;
 
@@ -55,6 +57,12 @@ public class StockPriceService {
         redisCommands.setex(redisKey,Duration.ofMinutes(15).getSeconds(), Double.toString(stockPrice));
 
         return stockPrice;
+    }
+    public double stockPriceFallback(String function, String symbol, String apiKey, Throwable throwable) {
+        return 0d;
+    }
+    public double blockHandler(String function, String symbol, String apiKey, Throwable throwable) {
+        return 0d;
     }
 
     public double calculateAsset(Long userId) throws Exception {
