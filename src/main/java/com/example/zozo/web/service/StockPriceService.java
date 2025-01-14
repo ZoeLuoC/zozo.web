@@ -2,6 +2,7 @@ package com.example.zozo.web.service;
 
 import com.alibaba.csp.sentinel.annotation.SentinelResource;
 import com.example.zozo.web.client.StockClient;
+import com.example.zozo.web.model.StatesAndEvents;
 import com.example.zozo.web.model.StockHolding;
 import com.example.zozo.web.model.StockPriceResponse;
 import com.example.zozo.web.model.User;
@@ -9,6 +10,7 @@ import com.example.zozo.web.repository.StockHoldingRepository;
 import com.example.zozo.web.repository.UserRepository;
 import io.lettuce.core.api.sync.RedisCommands;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.statemachine.StateMachine;
 import org.springframework.stereotype.Service;
 
 import java.time.Duration;
@@ -23,16 +25,20 @@ public class StockPriceService {
     private final RedisCommands<String, String> redisCommands;
     private final StockClient stockClient;
     private final String API_KEY = "AOW93E6NDJY6O8I8";
+    private final StateMachine<StatesAndEvents.GetStockPriceStates, StatesAndEvents.GetStockPriceEvents> tradeStateMachine;
+    boolean isSuccessful = true; // Simulate success
 
     @Autowired
     public StockPriceService(RedisCommands<String, String> redisCommands,
                              StockClient stockClient,
                              UserRepository userRepository,
-                             StockHoldingRepository stockHoldingRepository) {
+                             StockHoldingRepository stockHoldingRepository,
+                             StateMachine<StatesAndEvents.GetStockPriceStates, StatesAndEvents.GetStockPriceEvents> tradeStateMachine) {
         this.redisCommands = redisCommands;
         this.stockClient = stockClient;
         this.userRepository = userRepository;
         this.stockHoldingRepository = stockHoldingRepository;
+        this.tradeStateMachine = tradeStateMachine;
     }
 
     @SentinelResource(value = "getStockPrice", fallback = "stockPriceFallback", blockHandler = "blockHandler")
@@ -50,6 +56,7 @@ public class StockPriceService {
                 stockSymbol,
                 API_KEY).getBody();
         if (response == null || response.getGlobalQuote() == null || response.getGlobalQuote().getPrice() == null) {
+            isSuccessful = false;
             throw new Exception("Unavailable stock price");
         }
 
@@ -65,6 +72,16 @@ public class StockPriceService {
         return 0d;
     }
 
+    public void processTrade() {
+        tradeStateMachine.start(); // Start the state machine
+        tradeStateMachine.sendEvent(StatesAndEvents.GetStockPriceEvents.START_PROCESS); // Trigger event to transition states
+
+        if(isSuccessful) {
+            tradeStateMachine.sendEvent(StatesAndEvents.GetStockPriceEvents.SUCCESS); // Move to COMPLETED state
+        } else {
+            tradeStateMachine.sendEvent(StatesAndEvents.GetStockPriceEvents.FAILURE); // Move to FAILED state
+        }
+    }
     public double calculateAsset(Long userId) throws Exception {
         Optional<User> userOpt = userRepository.findById(userId);
 

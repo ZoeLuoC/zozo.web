@@ -1,5 +1,6 @@
 package com.example.zozo.web.controller;
 
+import com.example.zozo.web.controller.aop.RateLimited;
 import com.example.zozo.web.model.StockHolding;
 import com.example.zozo.web.model.exception.BizException;
 import com.example.zozo.web.service.StockService;
@@ -18,6 +19,7 @@ public class StockController {
     private StockService stockService;
 
     @GetMapping("/price/{symbol}")
+    @RateLimited(limit = 10, window = 1, name = "/price")
     public ResponseEntity<String> getStockPrice(@PathVariable String symbol) {
         try{
             // Add a redis cache to cache the price for this symbol 60s
@@ -30,6 +32,7 @@ public class StockController {
     }
 
     @GetMapping("/add-stock")
+    @RateLimited(limit = 20, window = 1, name = "/add-stock")
     public ResponseEntity<?> addStock(@RequestParam Long Id,
                                       @RequestParam String stockSymbol,
                                       @RequestParam int quantity,
@@ -45,6 +48,7 @@ public class StockController {
     }
 
     @PostMapping("/add-batch-stock")
+    @RateLimited(limit = 10, window = 1, name = "/add-batch-stock")
     public ResponseEntity<?> addBatchStockHolding(@RequestBody List<StockHolding> stockHoldings) {
         List<StockHolding> batchStockHolding;
         try {
@@ -56,6 +60,7 @@ public class StockController {
     }
 
     @GetMapping("/asset-value")
+    @RateLimited(limit = 10, window = 1, name = "/asset-value")
     public ResponseEntity<?> getAssetValue(@RequestParam Long id) throws Exception {
         double totalValue = stockService.calculateAssetValue(id);
         return ResponseEntity.ok("Total asset value: $" + totalValue);
